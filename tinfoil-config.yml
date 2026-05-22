@@ -1,38 +1,55 @@
-cvm-version: 0.7.5
+cvm-version: 0.10.1
 cpus: 32
 gpus: 8
 memory: 524288
 
 models:
   - name: "kimi-k2-6"
-    repo: "moonshotai/Kimi-K2.6@2b2b88e33c96d813ebb4c83a740252fe08018e3a"
-    mpk: "b9a191a313479bccc692491d74803b2520ae28c90bc440f9c76459d297529956_595205046272_1ea57052-e386-5369-8c4f-853663460858"
+    repo: "nvidia/Kimi-K2.6-NVFP4@2fd3a800dedd098b8327eb49e93ebc75f85da19f"
+    mpk: "23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8_595219173376_907a1c65-6c08-5c3c-9efa-e564282c7da0"
+  - name: "kimi-k2-6-eagle3"
+    repo: "lightseekorg/kimi-k2.6-eagle3-mla@a62f2453f5eaa1614ddf67844ffe3321e41078d4"
+    mpk: "4a66de267ba19868a2370ae6f57b03254da193a6699405dc9e0b2fdf75d4a921_6031220736_77aa3869-21ff-5da8-b5cd-c142337056e2"
 
 containers:
   - name: "kimi-k2-6"
-    image: "vllm/vllm-openai:v0.20.1-ubuntu2404@sha256:a36517a2adbf237be1f6c6fe5a69febf548141ad37debeb929b78807f2f35e3f"
+    image: "vllm/vllm-openai:v0.21.0-ubuntu2404@sha256:b0ac5da3f45ae5bfacb72e69b5bfd6150c22bd9cf4fc2c839400395106a5cc4e"
     runtime: nvidia
     gpus: all
     ipc: host
     restart: always
+    pids_limit: 65536
+    read_only: false
+    cap_add:
+      - IPC_LOCK
+      - SYS_RESOURCE
+      - SYS_NICE
+    env:
+      - VLLM_USE_FLASHINFER_MOE_FP4: "1"
     command: [
-      "--model", "/tinfoil/mpk/mpk-b9a191a313479bccc692491d74803b2520ae28c90bc440f9c76459d297529956",
+      "--model", "/tinfoil/mpk/mpk-23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8",
       "--tensor-parallel-size", "8",
+      "--kv-cache-dtype", "fp8",
+      "--enable-expert-parallel",
+      "--gpu-memory-utilization", "0.95",
       "--mm-encoder-tp-mode", "data",
-      "--served-model-name", "kimi-k2-6",
-      "--enable-auto-tool-choice",
-      "--enable-prompt-tokens-details",
-      "--tool-call-parser", "kimi_k2",
       "--reasoning-parser", "kimi_k2",
+      "--tool-call-parser", "kimi_k2",
+      "--enable-auto-tool-choice",
       "--trust-remote-code",
+      "--served-model-name", "kimi-k2-6",
       "--port", "8001",
       "--scheduling-policy", "priority",
+      "--speculative-config", "{\"model\": \"/tinfoil/mpk/mpk-4a66de267ba19868a2370ae6f57b03254da193a6699405dc9e0b2fdf75d4a921\", \"method\": \"eagle3\", \"num_speculative_tokens\": 3}",
     ]
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
       interval: 30s
       timeout: 5s
       start_period: 60m
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
 
 shim:
   upstream-port: 8001
