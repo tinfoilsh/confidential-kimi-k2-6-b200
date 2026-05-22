@@ -23,6 +23,7 @@ containers:
       "--enable-expert-parallel",
       "--tensor-parallel-size", "8",
       "--attention-config.use_trtllm_ragged_deepseek_prefill=True",
+      "--decode-context-parallel-size", "8",
       "--gpu-memory-utilization", "0.95",
       "--mm-encoder-tp-mode", "data",
       "--reasoning-parser", "kimi_k2",
