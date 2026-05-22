@@ -15,6 +15,12 @@ containers:
     gpus: all
     ipc: host
     restart: always
+    pids_limit: 65536
+    read_only: false
+    cap_add:
+      - IPC_LOCK
+      - SYS_RESOURCE
+      - SYS_NICE
     env:
       - VLLM_USE_FLASHINFER_MOE_FP4: "1"
     command: [
