@@ -13,7 +13,7 @@ containers:
     image: "vllm/vllm-openai:v0.21.0-ubuntu2404@sha256:b0ac5da3f45ae5bfacb72e69b5bfd6150c22bd9cf4fc2c839400395106a5cc4e"
     runtime: nvidia
     gpus: all
-    shm_size: "64g"
+    ipc: host
     restart: always
     pids_limit: 65536
     read_only: false
