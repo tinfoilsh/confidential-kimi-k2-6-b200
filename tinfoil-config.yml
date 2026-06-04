@@ -1,4 +1,4 @@
-cvm-version: 0.10.1
+cvm-version: 0.10.2
 cpus: 32
 gpus: 8
 memory: 524288
@@ -10,7 +10,7 @@ models:
 
 containers:
   - name: "kimi-k2-6"
-    image: "vllm/vllm-openai:v0.21.0-ubuntu2404@sha256:b0ac5da3f45ae5bfacb72e69b5bfd6150c22bd9cf4fc2c839400395106a5cc4e"
+    image: "vllm/vllm-openai:v0.22.0@sha256:0fec7ec5f3e6bc168e54899935fb0557da908a4832a1dbc88e2debcf2f889416"
     runtime: nvidia
     gpus: all
     ipc: host
