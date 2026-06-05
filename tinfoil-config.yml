@@ -1,7 +1,13 @@
-cvm-version: 0.10.2
+cvm-version: 0.10.4
 cpus: 32
-gpus: 8
 memory: 524288
+gpus: 8
+
+networks:
+  nvidia:
+    egress: allowlist
+    allow:
+      - edge.urm.nvidia.com
 
 models:
   - name: "kimi-k2-6"
@@ -10,45 +16,28 @@ models:
 
 containers:
   - name: "kimi-k2-6"
-    image: "vllm/vllm-openai:v0.22.0@sha256:0fec7ec5f3e6bc168e54899935fb0557da908a4832a1dbc88e2debcf2f889416"
+    image: "vllm/vllm-openai:v0.21.0-ubuntu2404@sha256:b0ac5da3f45ae5bfacb72e69b5bfd6150c22bd9cf4fc2c839400395106a5cc4e"
     runtime: nvidia
     gpus: all
-    ipc: host
     restart: always
-    pids_limit: 65536
-    read_only: false
-    cap_add:
-      - IPC_LOCK
-      - SYS_RESOURCE
-      - SYS_NICE
     env:
       - VLLM_USE_FLASHINFER_MOE_FP4: "1"
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
-    command: [
-      "--model", "/tinfoil/mpk/mpk-23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8",
-      "--tensor-parallel-size", "8",
-      "--kv-cache-dtype", "fp8",
-      "--enable-expert-parallel",
-      "--gpu-memory-utilization", "0.95",
-      "--max-num-seqs", "48",
-      "--enable-chunked-prefill",
-      "--mm-encoder-tp-mode", "data",
-      "--reasoning-parser", "kimi_k2",
-      "--tool-call-parser", "kimi_k2",
-      "--enable-auto-tool-choice",
-      "--trust-remote-code",
-      "--served-model-name", "kimi-k2-6",
-      "--port", "8001",
-      "--scheduling-policy", "priority",
-    ]
+    command: ["--model", "/tinfoil/mpk/mpk-23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8", "--tensor-parallel-size",
+      "8", "--kv-cache-dtype", "fp8", "--enable-expert-parallel", "--disable-custom-all-reduce", "--gpu-memory-utilization",
+      "0.90", "--max-num-seqs", "48", "--mm-encoder-tp-mode", "data", "--reasoning-parser", "kimi_k2", "--tool-call-parser",
+      "kimi_k2", "--enable-auto-tool-choice", "--trust-remote-code", "--served-model-name", "kimi-k2-6", "--port", "8001",
+      "--scheduling-policy", "priority"]
+    tmpfs:
+      /tmp: size=512m,mode=1777,exec
+      /root: size=2g,mode=0700,exec
+      /usr/local/lib/python3.12/dist-packages/flashinfer_cubin/cubins: size=2g,mode=1777,exec
+    networks: ["nvidia"]
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
       interval: 30s
       timeout: 5s
       start_period: 60m
-    tmpfs:
-      /tmp: size=512m,mode=1777,exec
-      /root: size=2g,mode=0700,exec
 
 shim:
   upstream-port: 8001
