@@ -1,0 +1,50 @@
+cvm-version: 0.10.4
+cpus: 32
+memory: 524288
+gpus: 8
+
+models:
+  - name: "kimi-k2-6"
+    repo: "nvidia/Kimi-K2.6-NVFP4@2fd3a800dedd098b8327eb49e93ebc75f85da19f"
+    mpk: "23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8_595219173376_907a1c65-6c08-5c3c-9efa-e564282c7da0"
+  - name: "kimi-k2-6-eagle3.1-mla"
+    repo: "lightseekorg/kimi-k2.6-eagle3.1-mla@35194ee8feb2826812f716eb42a924f99a5404f3"
+    mpk: "625b22ea09f84b147a2f8952d3aa288aa16146c00645b2c2eff60133f7bec890_6031261696_ecda59ae-4237-5cec-aae6-ed886702e1cb"
+
+containers:
+  - name: "kimi-k2-6"
+    image: "ghcr.io/tinfoilsh/confidential-kimi-k2-6-b200-dcp:latest"
+    runtime: nvidia
+    gpus: all
+    restart: always
+    env:
+      - VLLM_USE_FLASHINFER_MOE_FP4: "1"
+      - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
+      - FLASHINFER_NO_DOWNLOAD: "1"
+      - RUNAI_STREAMER_MEMORY_LIMIT: "4294967296"
+      - RUNAI_STREAMER_CONCURRENCY: "8"
+    command: ["--model", "/tinfoil/mpk/mpk-23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8", "--tensor-parallel-size",
+      "8", "--decode-context-parallel-size", "8", "--kv-cache-dtype", "fp8", "--enable-expert-parallel",
+      "--disable-custom-all-reduce", "--gpu-memory-utilization", "0.90", "--max-num-seqs", "48",
+      "--mm-encoder-tp-mode", "data", "--attention-backend", "TRITON_MLA",
+      "--reasoning-parser", "kimi_k2", "--tool-call-parser", "kimi_k2", "--enable-auto-tool-choice", "--trust-remote-code",
+      "--load-format", "runai_streamer",
+      "--served-model-name", "kimi-k2-6", "--port", "8001", "--scheduling-policy", "priority",
+      "--speculative-config", "{\"model\":\"/tinfoil/mpk/mpk-625b22ea09f84b147a2f8952d3aa288aa16146c00645b2c2eff60133f7bec890\",\"method\":\"eagle3\",\"num_speculative_tokens\":3,\"draft_attention_backend\":\"TRITON_MLA\",\"draft_kv_cache_dtype\":\"fp8\"}"]
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60m
+
+shim:
+  upstream-port: 8001
+  authenticated: true
+  authenticated-endpoints:
+    - /v1/chat/completions
+    - /v1/responses
+  paths:
+    - /v1/chat/completions
+    - /v1/responses
+    - /metrics
+    - /health
