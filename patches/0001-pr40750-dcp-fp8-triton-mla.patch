@@ -1,3 +1,15 @@
+# Backport of vllm-project/vllm#40750: TRITON_MLA MTP full CUDA graphs for
+# Kimi on Blackwell (DCP + fp8, tuning table).
+#
+# Adds DCP support to the TRITON_MLA attention backend with fp8 KV cache,
+# including CUDA graph-safe buffer management and a SM120/fp8 kernel tuning
+# table. Some hunks do not apply cleanly against v0.23.0 and are supplemented
+# by 0002-dcp-fp8-fixes.patch.
+#
+# Upstream PR: https://github.com/vllm-project/vllm/pull/40750
+# Upstream PR (fp8 KV cache with DCP): https://github.com/vllm-project/vllm/pull/40609
+# Tested against: vllm v0.23.0
+
 diff --git a/usr/local/lib/python3.12/dist-packages/vllm/config/speculative.py b/usr/local/lib/python3.12/dist-packages/vllm/config/speculative.py
 index 4e6a47ee46ce..9247d8e6ed6e 100644
 --- a/usr/local/lib/python3.12/dist-packages/vllm/config/speculative.py
