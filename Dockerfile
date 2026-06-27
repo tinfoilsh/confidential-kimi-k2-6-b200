@@ -8,7 +8,7 @@ FROM ${VLLM_BASE_IMAGE}
 # Patches are -p1 unified diffs rooted at /; they target
 # usr/local/lib/python3.12/dist-packages/... to match the base image.
 # 0001 uses --forward because some hunks don't apply cleanly against v0.23.0;
-# 0002-0003 supplement the failed hunks and add Eagle 3.1 support.
+# 0002 and 0003 supplement the failed hunks.
 COPY patches/ /tmp/tinfoil-patches/
 RUN set -eux; \
     cd /; \
@@ -28,9 +28,23 @@ RUN set -eux; \
     python3 -c "import vllm; print('vllm', vllm.__version__, 'with DCP+fp8+Eagle patches')"
 
 # Bake FlashInfer cubins at build time (saves ~16min on first boot)
+# Also pre-create symlinks that flashinfer creates at runtime via ensure_symlink(),
+# which fails on read-only container filesystems.
 RUN set -eux; \
     flashinfer show-config; \
     flashinfer download-cubin; \
     cubin_dir=/usr/local/lib/python3.12/dist-packages/flashinfer_cubin/cubins; \
     du -sh "$cubin_dir"; \
-    test "$(find "$cubin_dir" -type f | wc -l)" -gt 1000
+    test "$(find "$cubin_dir" -type f | wc -l)" -gt 1000; \
+    mkdir -p "$cubin_dir/flashinfer/trtllm"; \
+    for d in "$cubin_dir"/*/; do \
+        gemm_dir=$(find "$d" -maxdepth 3 -type d -name "trtllmGen_gemm_export" 2>/dev/null | head -1); \
+        bmm_dir=$(find "$d" -maxdepth 3 -type d -name "trtllmGen_bmm_export" 2>/dev/null | head -1); \
+        if [ -n "$gemm_dir" ]; then \
+            ln -sf "$gemm_dir" "$cubin_dir/flashinfer/trtllm/trtllmGen_gemm_export"; \
+        fi; \
+        if [ -n "$bmm_dir" ]; then \
+            ln -sf "$bmm_dir" "$cubin_dir/flashinfer/trtllm/trtllmGen_bmm_export"; \
+        fi; \
+    done; \
+    ls -la "$cubin_dir/flashinfer/trtllm/"
