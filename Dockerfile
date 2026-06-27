@@ -8,7 +8,7 @@ FROM ${VLLM_BASE_IMAGE}
 # Patches are -p1 unified diffs rooted at /; they target
 # usr/local/lib/python3.12/dist-packages/... to match the base image.
 # 0001 uses --forward because some hunks don't apply cleanly against v0.23.0;
-# 0002-0004 supplement the failed hunks and add Eagle 3.1 support.
+# 0002-0003 supplement the failed hunks and add Eagle 3.1 support.
 COPY patches/ /tmp/tinfoil-patches/
 RUN set -eux; \
     cd /; \
@@ -19,7 +19,6 @@ RUN set -eux; \
         < /tmp/tinfoil-patches/0002-dcp-fp8-fixes.patch; \
     patch -p1 --no-backup-if-mismatch --fuzz=0 \
         < /tmp/tinfoil-patches/0003-eagle-draft-dcp-override.patch; \
-    patch -p1 --no-backup-if-mismatch --fuzz=0 \
     cp /tmp/tinfoil-patches/triton_mla.py \
         /usr/local/lib/python3.12/dist-packages/vllm/v1/attention/backends/mla/triton_mla.py; \
     cp /tmp/tinfoil-patches/triton_mla_tuning.py \
