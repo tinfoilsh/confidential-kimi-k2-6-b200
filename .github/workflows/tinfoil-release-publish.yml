@@ -1,3 +1,5 @@
+# Tinfoil Containers release workflow (phase 2 — auto-triggered).
+#
 # DO NOT RUN MANUALLY. This workflow is dispatched automatically by
 # `tinfoil-release.yml` against the newly created release tag.
 
