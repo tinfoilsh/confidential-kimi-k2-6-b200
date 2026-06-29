@@ -1,0 +1,33 @@
+# Patch flashinfer's ensure_symlink() to tolerate read-only container rootfs.
+#
+# flashinfer.jit.cubin_loader.ensure_symlink() creates symlinks at runtime
+# to map C++ include paths to downloaded cubin artifacts. On a read-only
+# container rootfs the function fails because it calls mkdir() to create
+# parent directories and then opens a .lock file for writing — even when
+# the symlink already exists and is correct.
+#
+# This patch adds a fast-path early return: if the symlink already exists
+# and points to the correct target, skip all filesystem writes (mkdir,
+# lockfile). The symlinks are pre-created at Docker build time (see the
+# Dockerfile RUN step) with in-container absolute paths so
+# link.resolve() == target.resolve().
+#
+# Tested against: flashinfer 0.6.12 on vllm v0.23.0 (Blackwell B200)
+
+--- a/usr/local/lib/python3.12/dist-packages/flashinfer/jit/cubin_loader.py
++++ b/usr/local/lib/python3.12/dist-packages/flashinfer/jit/cubin_loader.py
+@@ -250,6 +250,14 @@
+     link = pathlib.Path(link)
+     target = pathlib.Path(target)
+
++    # Read-only rootfs fast path: if the symlink already exists and points
++    # to the correct target, skip all filesystem writes (mkdir, lockfile).
++    try:
++        if link.is_symlink() and link.resolve() == target.resolve():
++            return
++    except OSError:
++        pass
++
+     link.parent.mkdir(parents=True, exist_ok=True)
+     lock_path = str(link) + ".lock"
+     lock = filelock.FileLock(lock_path, timeout=60)
