@@ -13,7 +13,7 @@ models:
 
 containers:
   - name: "kimi-k2-6"
-    image: "ghcr.io/tinfoilsh/confidential-kimi-k2-6-b200@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    image: "ghcr.io/tinfoilsh/confidential-kimi-k2-6-b200@sha256:83ee716365ff84e012dc8c7b7d0c46d8daf1b395f8da78ad853916741d968dea" # v0.0.10
     runtime: nvidia
     gpus: all
     restart: always
