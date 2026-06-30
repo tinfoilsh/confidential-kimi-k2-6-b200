@@ -7,21 +7,19 @@ FROM ${VLLM_BASE_IMAGE}
 
 # Patches are -p1 unified diffs rooted at /; they target
 # usr/local/lib/python3.12/dist-packages/... to match the base image.
-# 0001 uses --forward because some hunks don't apply cleanly against v0.23.0;
-# 0002-0003 supplement the failed hunks and add Eagle 3.1 support.
-# 0004 patches flashinfer's ensure_symlink() to tolerate read-only rootfs.
+# 0001 is a fused backport of vllm PRs #40750 + #40609 + #40611, rewritten
+# to apply cleanly against v0.23.0 (no --forward, no .rej cleanup needed).
+# It supersedes the previous multi-patch stack (0001+0002+0003+0005) and
+# includes the fix for the DCP+fp8 crash (padded_local_token_to_seq).
+# 0002 patches flashinfer's ensure_symlink() to tolerate read-only rootfs.
+# triton_mla.py and triton_mla_tuning.py are full file replacements from PR #40750.
 COPY patches/ /tmp/tinfoil-patches/
 RUN set -eux; \
     cd /; \
-    patch -p1 --no-backup-if-mismatch --fuzz=0 --forward \
-        < /tmp/tinfoil-patches/0001-pr40750-dcp-fp8-triton-mla.patch || true; \
-    find /usr/local/lib/python3.12/dist-packages/vllm -name '*.rej' -delete 2>/dev/null || true; \
     patch -p1 --no-backup-if-mismatch --fuzz=0 \
-        < /tmp/tinfoil-patches/0002-dcp-fp8-fixes.patch; \
+        < /tmp/tinfoil-patches/0001-dcp-fp8-triton-mla-eagle-v0230.patch; \
     patch -p1 --no-backup-if-mismatch --fuzz=0 \
-        < /tmp/tinfoil-patches/0003-eagle-draft-dcp-override.patch; \
-    patch -p1 --no-backup-if-mismatch --fuzz=0 \
-        < /tmp/tinfoil-patches/0004-flashinfer-ro-symlinks.patch; \
+        < /tmp/tinfoil-patches/0002-flashinfer-ro-symlinks.patch; \
     cp /tmp/tinfoil-patches/triton_mla.py \
         /usr/local/lib/python3.12/dist-packages/vllm/v1/attention/backends/mla/triton_mla.py; \
     cp /tmp/tinfoil-patches/triton_mla_tuning.py \
