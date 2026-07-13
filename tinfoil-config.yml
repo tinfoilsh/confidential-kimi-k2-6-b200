@@ -18,19 +18,19 @@ containers:
     gpus: all
     restart: always
     env:
-      - VLLM_USE_FLASHINFER_MOE_FP4: "1"
       - PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True"
       - FLASHINFER_NO_DOWNLOAD: "1"
+      - NUMBA_CACHE_DIR: "/root/numba-cache"
       - RUNAI_STREAMER_MEMORY_LIMIT: "4294967296"
       - RUNAI_STREAMER_CONCURRENCY: "8"
     command: ["--model", "/tinfoil/mpk/mpk-23653f0bad86c7ad6d4994a2607858662c56ed3ba205252f5714ba8636db35f8", "--tensor-parallel-size",
       "8", "--decode-context-parallel-size", "8", "--kv-cache-dtype", "fp8", "--enable-expert-parallel",
       "--disable-custom-all-reduce", "--gpu-memory-utilization", "0.90", "--max-num-seqs", "48",
-      "--mm-encoder-tp-mode", "data", "--attention-backend", "TRITON_MLA",
+      "--mm-encoder-tp-mode", "data", "--attention-backend", "TRITON_MLA", "--moe-backend", "flashinfer_trtllm",
       "--reasoning-parser", "kimi_k2", "--tool-call-parser", "kimi_k2", "--enable-auto-tool-choice", "--enable-prompt-tokens-details", "--trust-remote-code",
       "--load-format", "runai_streamer",
       "--served-model-name", "kimi-k2-6", "--port", "8001", "--scheduling-policy", "priority",
-      "--speculative-config", "{\"model\":\"/tinfoil/mpk/mpk-625b22ea09f84b147a2f8952d3aa288aa16146c00645b2c2eff60133f7bec890\",\"method\":\"eagle3\",\"num_speculative_tokens\":3,\"draft_attention_backend\":\"TRITON_MLA\",\"draft_kv_cache_dtype\":\"fp8\"}"]
+      "--speculative-config", "{\"model\":\"/tinfoil/mpk/mpk-625b22ea09f84b147a2f8952d3aa288aa16146c00645b2c2eff60133f7bec890\",\"method\":\"eagle3\",\"num_speculative_tokens\":1,\"attention_backend\":\"TRITON_MLA\"}"]
     tmpfs:
       /tmp: size=512m,mode=1777,exec
       /root: size=20g,mode=0700,exec

@@ -1,0 +1,37 @@
+# Re-record prepare_inputs_event after sample_tokens (which runs the
+# spec-decode proposer) so the next batch's execute_model waits for ALL GPU
+# work from this step. Without it the batch queue lets the next batch's
+# _update_states mutate block tables while this batch's proposer is still
+# reading them on the GPU (garbled drafts under load with eagle3).
+#
+# Carried from the v0.23.0 fused patch (part of the vllm#40750 stack, still
+# open upstream); verified still unfixed at v0.25.0 — synchronize_input_prep
+# records the event only after input prep.
+# Tested against: vllm v0.25.0 (vllm/vllm-openai:v0.25.0-ubuntu2404)
+diff --git a/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu_model_runner.py b/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu_model_runner.py
+index e9b23f1c6..92c762c79 100644
+--- a/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu_model_runner.py
++++ b/usr/local/lib/python3.12/dist-packages/vllm/v1/worker/gpu_model_runner.py
+@@ -4455,6 +4455,22 @@ class GPUModelRunner(
+     @torch.inference_mode
+     def sample_tokens(
+         self, grammar_output: "GrammarOutput | None"
++    ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
++        try:
++            return self._sample_tokens_impl(grammar_output)
++        finally:
++            # Re-record the prepare_inputs_event AFTER sample_tokens
++            # (which includes the spec-decode proposer) so the NEXT
++            # batch's execute_model waits for ALL GPU work from this
++            # step -- not just execute_model but also the proposer.
++            # Without this, the batch queue allows the next batch's
++            # _update_states to modify block tables while the current
++            # batch's proposer is still reading them on the GPU.
++            if self.prepare_inputs_event is not None:
++                self.prepare_inputs_event.record()
++
++    def _sample_tokens_impl(
++        self, grammar_output: "GrammarOutput | None"
+     ) -> ModelRunnerOutput | AsyncModelRunnerOutput | IntermediateTensors:
+         if self.execute_model_state is None:
+             kv_connector_output = self.kv_connector_output

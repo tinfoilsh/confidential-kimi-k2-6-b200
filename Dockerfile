@@ -2,22 +2,22 @@
 #
 # Confidential Kimi K2.6 with DCP + Eagle 3.1 + fp8 KV cache.
 # Base is digest-pinned for attestation.
-ARG VLLM_BASE_IMAGE=vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088
+ARG VLLM_BASE_IMAGE=vllm/vllm-openai:v0.25.0-ubuntu2404@sha256:77aa409fb728b92cf172bdc7684673f9417290ce00a239dee7c1c42917234819
 FROM ${VLLM_BASE_IMAGE}
 
 # Patches are -p1 unified diffs rooted at /; they target
 # usr/local/lib/python3.12/dist-packages/... to match the base image.
-# 0001 is a fused backport of vllm PRs #40750 + #40609 + #40611, rewritten
-# to apply cleanly against v0.23.0 (no --forward, no .rej cleanup needed).
-# It supersedes the previous multi-patch stack (0001+0002+0003+0005) and
-# includes the fix for the DCP+fp8 crash (padded_local_token_to_seq).
+# 0001 fixes the spec-decode proposer/block-table event race (part of the
+# vllm#40750 stack, still unfixed upstream).
 # 0002 patches flashinfer's ensure_symlink() to tolerate read-only rootfs.
-# triton_mla.py and triton_mla_tuning.py are full file replacements from PR #40750.
+# triton_mla.py and triton_mla_tuning.py are full file replacements derived
+# from PR #40750, rebased onto v0.25.0 (carry upstream's #45111 stride-aware
+# kernel signature and get_kv_cache_stride_order).
 COPY patches/ /tmp/tinfoil-patches/
 RUN set -eux; \
     cd /; \
     patch -p1 --no-backup-if-mismatch --fuzz=0 \
-        < /tmp/tinfoil-patches/0001-dcp-fp8-triton-mla-eagle-v0230.patch; \
+        < /tmp/tinfoil-patches/0001-spec-decode-proposer-event-race.patch; \
     patch -p1 --no-backup-if-mismatch --fuzz=0 \
         < /tmp/tinfoil-patches/0002-flashinfer-ro-symlinks.patch; \
     cp /tmp/tinfoil-patches/triton_mla.py \
@@ -35,7 +35,7 @@ RUN set -eux; \
 # code expects (see flashinfer/jit/fused_moe.py and gemm/core.py):
 #   flashinfer/trtllm/batched_gemm/trtllmGen_bmm_export
 #   flashinfer/trtllm/gemm/trtllmGen_gemm_export
-# 0004 also patches ensure_symlink() itself as a belt-and-suspenders
+# 0002 also patches ensure_symlink() itself as a belt-and-suspenders
 # fallback in case a symlink is missing or stale.
 RUN set -eux; \
     flashinfer show-config; \
