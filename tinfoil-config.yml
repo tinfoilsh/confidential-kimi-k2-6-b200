@@ -46,6 +46,7 @@ shim:
   authenticated-endpoints:
     - /v1/chat/completions
     - /v1/responses
+    - /metrics
   paths:
     - /v1/chat/completions
     - /v1/models
