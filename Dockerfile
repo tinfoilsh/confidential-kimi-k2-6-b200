@@ -3,6 +3,9 @@
 # Confidential Kimi K2.6 with DCP + Eagle 3.1 + fp8 KV cache.
 # Base is digest-pinned for attestation.
 ARG VLLM_BASE_IMAGE=vllm/vllm-openai:v0.23.0-ubuntu2404@sha256:662e4975c5c9947f8723f4d8f438145971361a480a2ade1919bb9462a9f24088
+ARG SIDECAR_IMAGE=ghcr.io/tinfoilsh/inference-sidecar@sha256:65ce23d6560c46a1e8614ede187fcbf9798b267aa33878905b4872404787f47d
+FROM ${SIDECAR_IMAGE} AS sidecar
+
 FROM ${VLLM_BASE_IMAGE}
 
 # Patches are -p1 unified diffs rooted at /; they target
@@ -56,3 +59,6 @@ RUN set -eux; \
     done; \
     ls -la "$cubin_dir/flashinfer/trtllm/batched_gemm/" "$cubin_dir/flashinfer/trtllm/gemm/"; \
     python3 -c "import flashinfer; print('flashinfer', flashinfer.__version__, 'cubins baked')"
+
+COPY --from=sidecar /inference-sidecar /opt/tinfoil/inference-sidecar
+ENTRYPOINT ["/opt/tinfoil/inference-sidecar", "vllm", "serve"]
