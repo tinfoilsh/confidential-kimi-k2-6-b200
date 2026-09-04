@@ -27,7 +27,7 @@ containers:
       "8", "--decode-context-parallel-size", "8", "--kv-cache-dtype", "fp8", "--enable-expert-parallel",
       "--disable-custom-all-reduce", "--gpu-memory-utilization", "0.90", "--max-num-seqs", "48",
       "--mm-encoder-tp-mode", "data", "--attention-backend", "TRITON_MLA",
-      "--reasoning-parser", "kimi_k2", "--tool-call-parser", "kimi_k2", "--enable-auto-tool-choice", "--enable-prompt-tokens-details", "--trust-remote-code",
+      "--reasoning-parser", "kimi_k2", "--tool-call-parser", "kimi_k2", "--enable-auto-tool-choice", "--enable-force-include-usage", "--enable-prompt-tokens-details", "--trust-remote-code",
       "--load-format", "runai_streamer",
       "--served-model-name", "kimi-k2-6", "--port", "8001", "--scheduling-policy", "priority",
       "--speculative-config", "{\"model\":\"/tinfoil/mpk/mpk-625b22ea09f84b147a2f8952d3aa288aa16146c00645b2c2eff60133f7bec890\",\"method\":\"eagle3\",\"num_speculative_tokens\":3,\"draft_attention_backend\":\"TRITON_MLA\",\"draft_kv_cache_dtype\":\"fp8\"}"]
